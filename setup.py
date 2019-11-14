@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="pert-calvinxc1",
+    name="pertdist",
     version="0.0.1",
     author="Jason M. Cherry",
     author_email="jcherry@gmail.com",
