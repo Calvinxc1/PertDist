@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pertdist",
-    version="0.0.1",
+    version="0.1.0",
     author="Jason M. Cherry",
     author_email="jcherry@gmail.com",
     description="A scipy-like implementation of the PERT distribution",
