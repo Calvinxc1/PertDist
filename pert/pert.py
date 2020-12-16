@@ -188,7 +188,7 @@ class PERT:
         ppf_val = beta_dist.ppf(val, self.alpha, self.beta) * self.range + self.min_val
         return ppf_val
         
-def logcdf(self, val) -> Array:
+    def logcdf(self, val) -> Array:
         """ Calculates the log-CDF value for a set of inputs
         
         Parameters
