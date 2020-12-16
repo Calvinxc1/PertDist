@@ -124,7 +124,7 @@ class PERT:
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the PDF calcualtion on
+            Values to return the PDF calculation on
         
         Returns
         -------
@@ -142,7 +142,7 @@ class PERT:
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the log-PDF calcualtion on
+            Values to return the log-PDF calculation on
         
         Returns
         -------
@@ -159,7 +159,7 @@ class PERT:
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the CDF calcualtion on
+            Values to return the CDF calculation on
         
         Returns
         -------
@@ -171,13 +171,30 @@ class PERT:
         cdf_val = beta_dist.cdf(x, self.alpha, self.beta) / self.range
         return cdf_val
     
-    def logcdf(self, val) -> Array:
+    def ppf(self, val) -> Array:
+        """ Calculates the inverse CDF for a set of inputs
+        
+        Parameters
+        ----------
+        val: numeric or numeric-array
+            Values to return the inverse CDF calculation on
+        
+        Returns
+        -------
+        Array:
+            CDF values based on the val parameter
+        """
+        
+        ppf_val = beta_dist.ppf(val, self.alpha, self.beta) * self.range + self.min_val
+        return ppf_val
+        
+def logcdf(self, val) -> Array:
         """ Calculates the log-CDF value for a set of inputs
         
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the log-CDF calcualtion on
+            Values to return the log-CDF calculation on
         
         Returns
         -------
