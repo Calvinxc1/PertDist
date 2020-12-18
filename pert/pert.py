@@ -50,14 +50,23 @@ class PERT:
     """
     
     def __init__(self, min_val:Array, ml_val:Array, max_val:Array, lamb=4.0):
-        if lamb <= 0:
-            raise ValueError('lamb parameter should be greater than 0.')
         
         self.a = np.asarray(min_val)
         self.b = np.asarray(ml_val)
         self.c = np.asarray(max_val)
         self.lamb = lamb
         
+        if np.any(lamb <= 0):
+            raise ValueError('lamb parameter should be greater than 0.')
+        if np.any(self.b < self.a):
+            raise ValueError('min_val parameter should be lower than ml_val.')
+        if np.any(self.c < self.b):
+            raise ValueError('ml_val parameter should be lower than max_val.')
+        # in case any a == b == c. Deals with arrays and floating error
+        if np.any(np.multiply(np.isclose(self.a, self.b), 
+                              np.isclose(self.b, self.c))):
+            raise ValueError('min_val, ml_val and max_val parameter should be different.')
+
         self.build()
         
     def build(self):
@@ -99,6 +108,18 @@ class PERT:
         """
         return np.asarray(self.c - self.a)
     
+    def median(self):
+        """ Calculates the median
+        
+        Returns
+        -------
+        Array:
+            Array of median values.
+        """
+        median = (beta_dist(self.alpha, self.beta).median() * self.range) + self.a
+        return median
+
+    
     def rvs(self, size=1, random_state=None):
         """ Returns a randompy-sampled value from the PERT
         
@@ -124,7 +145,7 @@ class PERT:
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the PDF calcualtion on
+            Values to return the PDF calculation on
         
         Returns
         -------
@@ -142,7 +163,7 @@ class PERT:
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the log-PDF calcualtion on
+            Values to return the log-PDF calculation on
         
         Returns
         -------
@@ -159,7 +180,7 @@ class PERT:
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the CDF calcualtion on
+            Values to return the CDF calculation on
         
         Returns
         -------
@@ -168,16 +189,85 @@ class PERT:
         """
         
         x = ((val - self.a) / self.range).clip(0,1)
-        cdf_val = beta_dist.cdf(x, self.alpha, self.beta) / self.range
+        cdf_val = beta_dist.cdf(x, self.alpha, self.beta)
         return cdf_val
     
+    def sf(self, val) -> Array:
+        """ Calculates the survival function for a set of inputs
+        
+        Parameters
+        ----------
+        val: numeric or numeric-array
+            Values to return the survival function calculation on
+        
+        Returns
+        -------
+        Array:
+            survival function based on the val parameter
+        """
+        
+        x = ((val - self.a) / self.range).clip(0,1)
+        sf_val = beta_dist.sf(x, self.alpha, self.beta)
+        return sf_val
+
+    def logsf(self, val) -> Array:
+        """ Calculates the log of the survival function for a set of inputs
+        
+        Parameters
+        ----------
+        val: numeric or numeric-array
+            Values to return the log of the survival calculation on
+        
+        Returns
+        -------
+        Array:
+            log of the survival function based on the val parameter
+        """
+        
+        x = ((val - self.a) / self.range).clip(0,1)
+        logsf_val = beta_dist.logsf(x, self.alpha, self.beta)
+        return logsf_val
+
+    def ppf(self, val) -> Array:
+        """ Calculates the inverse CDF for a set of inputs
+        
+        Parameters
+        ----------
+        val: numeric or numeric-array
+            Values to return the inverse CDF calculation on the val parameter
+        
+        Returns
+        -------
+        Array:
+            CDF values based on the val parameter
+        """
+        
+        ppf_val = beta_dist.ppf(val, self.alpha, self.beta) * self.range + self.a
+        return ppf_val
+        
+    def isf(self, val) -> Array:
+        """ Calculates the inverse survival function for a set of inputs
+        
+        Parameters
+        ----------
+        val: numeric or numeric-array
+            Values to return the inverse survival function calculation onthe val parameter
+        
+        Returns
+        -------
+        Array:
+            inverse of the survival function values based on the val parameter
+        """
+        isf_val = beta_dist.isf(val, self.alpha, self.beta) * self.range + self.a
+        return isf_val
+
     def logcdf(self, val) -> Array:
         """ Calculates the log-CDF value for a set of inputs
         
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the log-CDF calcualtion on
+            Values to return the log-CDF calculation on
         
         Returns
         -------
