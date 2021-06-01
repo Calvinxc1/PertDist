@@ -27,15 +27,10 @@ On running this you should see a chart of a heavily low/left skewed distribution
 * Develop unit tests
     - Especially around flexible identification of various data types, eg: accepting DataFrames, Series, lists, etc.
 * Build out the following scipy function analogues:
-    - sf
-    - logsf
-    - ppf
-    - isf
     - moment
     - entropy
     - fit
     - expect
-    - median
     - mean
     - var
     - std
