@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.special import beta, betainc
 from scipy.stats import beta as beta_dist
 from scipy.stats import norm as norm_dist
 
@@ -63,8 +62,7 @@ class PERT:
         if np.any(self.c < self.b):
             raise ValueError('ml_val parameter should be lower than max_val.')
         # in case any a == b == c. Deals with arrays and floating error
-        if np.any(np.multiply(np.isclose(self.a, self.b), 
-                              np.isclose(self.b, self.c))):
+        if np.any(self.a == self.b) or np.any(self.b == self.c):
             raise ValueError('min_val, ml_val and max_val parameter should be different.')
 
         self.build()
@@ -73,7 +71,7 @@ class PERT:
         """ Calculates core PERT statistics
         
         PERT statistics can be found on [Wikipedia](https://en.wikipedia.org/wiki/PERT_distribution)
-        Note that these values have been modified to accomodate for a flexible lambda value (per
+        Note that these values have been modified to accommodate for a flexible lambda value (per
         modified-PERT on Wikipedia).
         """
         
@@ -333,3 +331,7 @@ class PERT:
         alpha = norm_dist.cdf(z) - norm_dist.cdf(-z)
         ci = self.interval(alpha)
         return ci
+
+    def __repr__(self):
+        return (f"{type(self).__name__}(a={self.a}, b={self.b}, c={self.c}, lamb={self.lamb}, alpha={self.alpha},"
+                f" beta={self.beta}, mean={self.mean}, var={self.var}, skew={self.skew}, kurt={self.kurt})")

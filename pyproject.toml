@@ -1,0 +1,26 @@
+[project]
+name = "pertdist"
+version = "0.1.2"
+description = "Add your description here"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.4.0",
+    "pydantic>=2.12.5",
+    "scipy>=1.16.3",
+]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "notebook>=7.5.1",
+    "scipy-stubs>=1.17.0.1",
+    "seaborn>=0.13.2",
+    "tqdm>=4.67.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.25,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "pert"
