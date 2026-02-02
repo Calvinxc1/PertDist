@@ -141,7 +141,9 @@ class PERT:
             Randomly sampled values from the PERT distribution.
         """
 
-        rvs_vals = (beta_dist(self.alpha, self.beta).rvs(size=size, random_state=random_state) * self.range) + self.a
+        rvs_vals = (
+            beta_dist(self.alpha, self.beta).rvs(size=size, random_state=random_state) * self.range
+        ) + self.a
         return rvs_vals
 
     @overload
@@ -388,5 +390,8 @@ class PERT:
         return ci
 
     def __repr__(self):
-        return (f"{type(self).__name__}(a={self.a}, b={self.b}, c={self.c}, lamb={self.lamb}, alpha={self.alpha},"
-                f" beta={self.beta}, mean={self.mean}, var={self.var}, skew={self.skew}, kurt={self.kurt})")
+        return (
+            f"{type(self).__name__}(a={self.a}, b={self.b}, c={self.c}, lamb={self.lamb},"
+            f" alpha={self.alpha}, beta={self.beta}, mean={self.mean}, var={self.var},"
+            f" skew={self.skew}, kurt={self.kurt})"
+        )
