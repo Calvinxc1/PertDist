@@ -8,7 +8,7 @@ class PERT:
     """ Implementation of the Beta-PERT distribution
     
     A custom implementation of the Beta-PERT distribution (also shorthand
-    referred to as the PERT distributon) using `numpy` and `scipy`. Methods
+    referred to as the PERT distribution) using `numpy` and `scipy`. Methods
     mimic `scipy.stats` classes.
     
     Parameters
@@ -131,7 +131,7 @@ class PERT:
         Returns
         -------
         Array:
-            Randomly sampled values from the PERT dristribution.
+            Randomly sampled values from the PERT distribution.
         """
         
         rvs_vals = (beta_dist(self.alpha, self.beta).rvs(size=size, random_state=random_state) * self.range) + self.a
@@ -249,8 +249,8 @@ class PERT:
         Parameters
         ----------
         val: numeric or numeric-array
-            Values to return the inverse survival function calculation onthe val parameter
         
+            Values to return the inverse survival function calculation on the val parameter
         Returns
         -------
         Array:
@@ -299,7 +299,7 @@ class PERT:
         Parameters
         ----------
         alpha: float
-            Percent of distribution to be caintained within returned interval.
+            Percent of distribution to be contained within returned interval.
             Must be between 0.0 and 1.0
             
         Returns
