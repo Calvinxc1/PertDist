@@ -1,4 +1,4 @@
-name: Uni Tests (via Pytest)
+name: Unit Tests (via Pytest)
 on: [pull_request]
 jobs:
   test:
