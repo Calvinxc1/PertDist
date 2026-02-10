@@ -1,5 +1,10 @@
 # Version History
 
+## v0.1.3 (2026-02-10)
+* Cleanup type hints
+* Add first unit tests
+* Add first automated tests via actions.
+
 ## v0.1.2 (2026-01-16)
 * Altered input value checks to allow for numbers smaller than `np.isclose` would measure.
 * Added a halfway useful `__repr__` to the PERT class.
