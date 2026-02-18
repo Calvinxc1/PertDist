@@ -1,8 +1,11 @@
 # Version History
 
+## v0.1.4 (TBD)
+* Updated lockfile versions.
+
 ## v0.1.3 (2026-02-10)
-* Cleanup type hints
-* Add first unit tests
+* Cleanup type hints.
+* Add first unit tests.
 * Add first automated tests via actions.
 
 ## v0.1.2 (2026-01-16)
