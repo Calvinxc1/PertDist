@@ -1,26 +1,27 @@
+import numpy as np
 import pytest
 
 from pert import PERT
 
-def test_valid_a_b_c():
-    min_val, ml_val, max_val = 1, 2, 3
+
+def test_init_assigns_valid_a_b_c_values():
+    min_val, ml_val, max_val = 1.0, 2.0, 3.0
     dist = PERT(min_val, ml_val, max_val)
-    assert dist.a == min_val
-    assert dist.b == ml_val
-    assert dist.c == max_val
 
-def test_invalid_a_b():
-    with pytest.raises(ValueError):
-        PERT(1, 0, 2)
+    np.testing.assert_allclose(dist.a, min_val)
+    np.testing.assert_allclose(dist.b, ml_val)
+    np.testing.assert_allclose(dist.c, max_val)
 
-def test_invalid_b_c():
-    with pytest.raises(ValueError):
-        PERT(0, 2, 1)
 
-def test_invalid_a_c():
+@pytest.mark.parametrize(
+    ("min_val", "ml_val", "max_val"),
+    [
+        (1.0, 0.0, 2.0),
+        (0.0, 2.0, 1.0),
+        (2.0, 3.0, 0.0),
+        (2.0, 2.0, 2.0),
+    ],
+)
+def test_init_raises_for_invalid_parameter_ordering(min_val, ml_val, max_val):
     with pytest.raises(ValueError):
-        PERT(2, 3, 0)
-
-def test_equal_a_b_c():
-    with pytest.raises(ValueError):
-        PERT(2, 2, 2)
+        PERT(min_val, ml_val, max_val)
