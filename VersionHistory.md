@@ -5,6 +5,7 @@
 * Refactored initialization tests to a consistent pytest style with parametrized invalid-input cases.
 * Updated `PERT.rvs` type hints to allow tuple-shaped `size` inputs (`int | tuple[int, ...]`).
 * Updated lockfile versions.
+* Updated the GitHub Actions pytest workflow configuration.
 * Refreshed README and release notes content to match current API, testing coverage, and development workflow.
 
 ## v0.1.3 (2026-02-10)
