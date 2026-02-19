@@ -136,7 +136,7 @@ class PERT:
         median = (beta_dist(self.alpha, self.beta).median() * self.range) + self.a
         return median
 
-    def rvs(self, size: int = 1, random_state: Optional[int] = None) -> NDArray:
+    def rvs(self, size: int | tuple[int, ...] = 1, random_state: Optional[int] = None) -> NDArray:
         """ Returns a randomly-sampled value from the PERT
         
         Parameters
