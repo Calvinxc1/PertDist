@@ -15,4 +15,4 @@ jobs:
       - name: Install project
         run: uv sync --locked --all-extras --dev
       - name: Run tests
-        run: uv run pytest --cov=src --cov-report= tests
+        run: uv run pytest --cov=src --cov-report=term-missing ./tests
