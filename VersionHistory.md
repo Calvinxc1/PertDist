@@ -1,6 +1,6 @@
 # Version History
 
-## v0.1.4 (Unreleased)
+## v0.1.4 (2026-02-19)
 * Expanded automated test coverage across distribution identities, sampling, vectorization, validation edges, median/ci, and repr behavior.
 * Refactored initialization tests to a consistent pytest style with parametrized invalid-input cases.
 * Updated `PERT.rvs` type hints to allow tuple-shaped `size` inputs (`int | tuple[int, ...]`).
