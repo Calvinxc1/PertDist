@@ -13,6 +13,7 @@ These instructions apply to the entire repo tree.
   - `hotfix/*`: branch from `main`, merge into `main` only.
 - Never commit directly to `main` or `dev`.
 - Use pull requests for all merges.
+- Create pull requests as draft PRs by default; do not create regular/open PRs unless explicitly instructed.
 - Keep branches scoped to one purpose; avoid mixing unrelated changes.
 - Keep commits scoped to one logical change whenever possible.
 - Avoid mixing unrelated code, tests, docs, or config updates in a single commit unless they are required for one atomic change.
@@ -47,5 +48,6 @@ These instructions apply to the entire repo tree.
 ## 3) Safety and Transparency
 
 - Before any change, state exactly what you will do.
+- For bug/failure remediation (for example CI/workflow errors), first explain the proposed fix and ask for explicit confirmation before making file edits.
 - After any change, summarize exactly what changed and where.
 - If requested action conflicts with these rules, ask for confirmation and explain the conflict.
