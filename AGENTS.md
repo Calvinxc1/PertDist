@@ -9,8 +9,8 @@ These instructions apply to the entire repo tree.
   - `main`: production-ready history only.
   - `dev`: integration branch for upcoming work.
   - `feature/*`: branch from `dev`, merge back into `dev`.
-  - `release/*`: branch from `dev`, merge into both `main` and `dev`.
-  - `hotfix/*`: branch from `main`, merge into both `main` and `dev`.
+  - `release/*`: branch from `dev`, merge into `main` only.
+  - `hotfix/*`: branch from `main`, merge into `main` only.
 - Never commit directly to `main` or `dev`.
 - Use pull requests for all merges.
 - Keep branches scoped to one purpose; avoid mixing unrelated changes.

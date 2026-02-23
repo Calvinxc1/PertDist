@@ -22,7 +22,7 @@ jobs:
           allowed=false
 
           if [[ "$BASE_REF" == "dev" ]]; then
-            if [[ "$HEAD_REF" == feature/* || "$HEAD_REF" == release/* || "$HEAD_REF" == hotfix/* ]]; then
+            if [[ "$HEAD_REF" == feature/* ]]; then
               allowed=true
             fi
           elif [[ "$BASE_REF" == "main" ]]; then
@@ -36,9 +36,7 @@ jobs:
             echo "Allowed paths:"
             echo "  feature/* -> dev"
             echo "  release/* -> main"
-            echo "  release/* -> dev"
             echo "  hotfix/* -> main"
-            echo "  hotfix/* -> dev"
             exit 1
           fi
 
