@@ -46,7 +46,30 @@ jobs:
       - name: Install project
         run: uv sync --locked --all-extras --dev
       - name: Run tests
-        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=pytest.xml ./tests
+        run: uv run pytest --cov=src --cov-fail-under=90 --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=pytest.xml ./tests
+      - name: Add coverage summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          summary_path = os.environ["GITHUB_STEP_SUMMARY"]
+          coverage_path = "coverage.xml"
+
+          if not os.path.exists(coverage_path):
+              with open(summary_path, "a", encoding="utf-8") as f:
+                  f.write("## Coverage\ncoverage.xml not found.\n")
+              raise SystemExit(0)
+
+          root = ET.parse(coverage_path).getroot()
+          line_rate = float(root.attrib.get("line-rate", 0.0))
+          pct = line_rate * 100
+
+          with open(summary_path, "a", encoding="utf-8") as f:
+              f.write("## Coverage\n")
+              f.write(f"- Total line coverage: {pct:.2f}%\n")
+          PY
       - name: Publish test results
         if: always()
         uses: EnricoMi/publish-unit-test-result-action@v2
