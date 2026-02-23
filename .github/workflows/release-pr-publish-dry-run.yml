@@ -2,6 +2,7 @@ name: Release PR Publish Dry Run
 
 permissions:
   contents: read
+  id-token: write
 
 on:
   pull_request:
@@ -29,7 +30,7 @@ jobs:
         run: uv build
 
       - name: Publish dry run
-        run: uv publish --dry-run dist/*
+        run: uv publish --dry-run --trusted-publishing always dist/*
 
       - name: Upload build artifacts
         if: always()
