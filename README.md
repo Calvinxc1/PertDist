@@ -1,6 +1,5 @@
 # PertDist
 [![CI (main)](https://github.com/Calvinxc1/PertDist/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Calvinxc1/PertDist/actions/workflows/ci.yml?query=branch%3Amain)
-[![Coverage (main)](https://codecov.io/gh/Calvinxc1/PertDist/branch/main/graph/badge.svg)](https://codecov.io/gh/Calvinxc1/PertDist/tree/main)
 
 `PertDist` is a SciPy-style implementation of the [Beta-PERT distribution](https://en.wikipedia.org/wiki/PERT_distribution).
 
