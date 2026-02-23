@@ -29,3 +29,7 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "pert"
+
+[tool.coverage.run]
+relative_files = true
+source = ["src"]
