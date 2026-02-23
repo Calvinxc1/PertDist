@@ -1,0 +1,43 @@
+name: GitFlow PR Rules
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+jobs:
+  validate-pr-flow:
+    name: validate branch flow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate source and target branches
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "Validating PR flow: $HEAD_REF -> $BASE_REF"
+
+          allowed=false
+
+          if [[ "$BASE_REF" == "dev" ]]; then
+            if [[ "$HEAD_REF" == feature/* ]]; then
+              allowed=true
+            fi
+          elif [[ "$BASE_REF" == "main" ]]; then
+            if [[ "$HEAD_REF" == release/* || "$HEAD_REF" == hotfix/* ]]; then
+              allowed=true
+            fi
+          fi
+
+          if [[ "$allowed" != "true" ]]; then
+            echo "Invalid GitFlow PR path: '$HEAD_REF' -> '$BASE_REF'"
+            echo "Allowed paths:"
+            echo "  feature/* -> dev"
+            echo "  release/* -> main"
+            echo "  hotfix/* -> main"
+            exit 1
+          fi
+
+          echo "GitFlow PR path is valid."

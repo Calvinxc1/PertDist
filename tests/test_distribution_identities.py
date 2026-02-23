@@ -32,7 +32,9 @@ def test_inverse_relationships_for_cdf_ppf_and_sf_isf():
 
     np.testing.assert_allclose(dist.ppf(dist.cdf(xs)), xs, rtol=1e-10, atol=1e-10)
     np.testing.assert_allclose(dist.isf(dist.sf(xs)), xs, rtol=1e-10, atol=1e-10)
-    np.testing.assert_allclose(dist.cdf(xs) + dist.sf(xs), np.ones_like(xs), rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(
+        dist.cdf(xs) + dist.sf(xs), np.ones_like(xs), rtol=1e-12, atol=1e-12
+    )
 
 
 def test_log_methods_match_logs_of_base_methods():

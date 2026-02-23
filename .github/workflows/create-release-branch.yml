@@ -1,0 +1,103 @@
+name: Create Release Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "SemVer release version (e.g. 1.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-branch-and-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Validate version and branch availability
+        id: prep
+        run: |
+          set -euo pipefail
+
+          VERSION='${{ github.event.inputs.release_version }}'
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid SemVer version: $VERSION"
+            echo "Expected format: MAJOR.MINOR.PATCH (for example: 1.2.3)"
+            exit 1
+          fi
+
+          BRANCH="release/$VERSION"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+          if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+            echo "Branch already exists locally: $BRANCH"
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
+            echo "Branch already exists on origin: $BRANCH"
+            exit 1
+          fi
+
+      - name: Create and push release branch
+        run: |
+          set -euo pipefail
+          BRANCH='${{ steps.prep.outputs.branch }}'
+          git switch -c "$BRANCH"
+          git push origin "$BRANCH"
+
+      - name: Create draft PR to main
+        uses: actions/github-script@v8
+        env:
+          BRANCH: ${{ steps.prep.outputs.branch }}
+          VERSION: ${{ github.event.inputs.release_version }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = process.env.BRANCH;
+            const version = process.env.VERSION;
+
+            const existing = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${branch}`,
+              base: 'main',
+              per_page: 100,
+            });
+
+            if (existing.data.length > 0) {
+              core.info(`Draft/open PR already exists: ${existing.data[0].html_url}`);
+              return;
+            }
+
+            const title = `release: v${version}`;
+            const body = [
+              `Automated release PR for \`${branch}\` into \`main\`.`,
+              '',
+              'Checklist:',
+              '- [ ] Confirm release notes',
+              '- [ ] Confirm version metadata',
+              '- [ ] Validate CI status',
+            ].join('\n');
+
+            const pr = await github.rest.pulls.create({
+              owner,
+              repo,
+              title,
+              head: branch,
+              base: 'main',
+              body,
+              draft: true,
+            });
+
+            core.info(`Created draft PR: ${pr.data.html_url}`);

@@ -11,7 +11,9 @@ def test_lamb_must_be_greater_than_zero(lamb):
 
 
 def test_array_inputs_raise_when_any_element_violates_ordering():
-    with pytest.raises(ValueError, match="min_val parameter should be lower than ml_val"):
+    with pytest.raises(
+        ValueError, match="min_val parameter should be lower than ml_val"
+    ):
         PERT(np.array([0.0, 5.0]), np.array([1.0, 4.0]), np.array([2.0, 6.0]))
 
 

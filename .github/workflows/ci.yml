@@ -1,0 +1,69 @@
+name: CI
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  push:
+    branches:
+      - "release/**"
+      - "hotfix/**"
+
+jobs:
+  lint:
+    name: ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Python setup
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+      - name: Install UV
+        uses: astral-sh/setup-uv@v7
+      - name: Install project
+        run: uv sync --locked --all-extras --dev
+      - name: Run ruff
+        run: uv run ruff check . --output-format=github
+
+  test:
+    name: python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Python setup
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+      - name: Install UV
+        uses: astral-sh/setup-uv@v7
+      - name: Install project
+        run: uv sync --locked --all-extras --dev
+      - name: Run tests
+        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=pytest.xml ./tests
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: pytest.xml
+      - name: Upload pytest artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: |
+            pytest.xml
+            coverage.xml
+      - name: Publish coverage comment
+        if: always() && github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 90
+          MINIMUM_ORANGE: 75
