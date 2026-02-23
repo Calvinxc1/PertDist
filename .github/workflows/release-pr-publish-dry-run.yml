@@ -1,0 +1,39 @@
+name: Release PR Publish Dry Run
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, reopened, synchronize, ready_for_review]
+
+jobs:
+  publish-dry-run:
+    if: startsWith(github.head_ref, 'release/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Python setup
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v7
+
+      - name: Build distributions
+        run: uv build
+
+      - name: Publish dry run
+        run: uv publish --dry-run --offline dist/*
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/*
