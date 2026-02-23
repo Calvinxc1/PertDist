@@ -42,5 +42,16 @@ def test_repr_includes_core_fields():
     representation = repr(dist)
 
     assert representation.startswith("PERT(")
-    for field_name in ("a=", "b=", "c=", "lamb=", "alpha=", "beta=", "mean=", "var=", "skew=", "kurt="):
+    for field_name in (
+        "a=",
+        "b=",
+        "c=",
+        "lamb=",
+        "alpha=",
+        "beta=",
+        "mean=",
+        "var=",
+        "skew=",
+        "kurt=",
+    ):
         assert field_name in representation
