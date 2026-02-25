@@ -1,0 +1,289 @@
+name: Deploy On Main Merge
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+jobs:
+  validate-release:
+    if: >
+      github.event.pull_request.merged == true &&
+      (startsWith(github.event.pull_request.head.ref, 'release/') ||
+       startsWith(github.event.pull_request.head.ref, 'hotfix/'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      tag: ${{ steps.validate.outputs.tag }}
+      source_branch: ${{ steps.validate.outputs.source_branch }}
+    steps:
+      - name: Checkout merge commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Validate version metadata and changelog
+        id: validate
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+          import tomllib
+
+          root = pathlib.Path(".")
+          pyproject = root / "pyproject.toml"
+          init_py = root / "src/pert/__init__.py"
+          history = root / "VersionHistory.md"
+          output_file = pathlib.Path(os.environ["GITHUB_OUTPUT"])
+          head_ref = os.environ["HEAD_REF"]
+
+          project_version = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
+
+          match = re.search(
+              r'^__version__\s*=\s*"([^"]+)"',
+              init_py.read_text(encoding="utf-8"),
+              re.MULTILINE,
+          )
+          if not match:
+              raise SystemExit("Unable to find __version__ in src/pert/__init__.py")
+          code_version = match.group(1)
+
+          if code_version != project_version:
+              raise SystemExit(
+                  f"Version mismatch: pyproject.toml={project_version} vs __init__.py={code_version}"
+              )
+
+          changelog_text = history.read_text(encoding="utf-8")
+          entry_header = f"## v{project_version} ("
+          if entry_header not in changelog_text:
+              raise SystemExit(
+                  f"Missing VersionHistory entry for v{project_version}. Expected header starting with: {entry_header}"
+              )
+
+          semver_pattern = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+          semver_match = semver_pattern.match(project_version)
+          if not semver_match:
+              raise SystemExit(f"Project version is not SemVer: {project_version}")
+
+          heading_pattern = re.compile(r"^## v(\d+\.\d+\.\d+) \([^)]+\)$", re.MULTILINE)
+          versions = [m.group(1) for m in heading_pattern.finditer(changelog_text)]
+          if len(versions) < 2:
+              raise SystemExit("VersionHistory.md needs at least two version headings for validation.")
+
+          try:
+              current_idx = versions.index(project_version)
+          except ValueError as exc:
+              raise SystemExit(
+                  f"v{project_version} was not found as an exact VersionHistory heading."
+              ) from exc
+
+          if current_idx == len(versions) - 1:
+              raise SystemExit(
+                  f"Unable to determine prior version for v{project_version} from VersionHistory.md."
+              )
+
+          previous_version = versions[current_idx + 1]
+
+          def parse_semver(version: str) -> tuple[int, int, int]:
+              parsed = semver_pattern.match(version)
+              if not parsed:
+                  raise SystemExit(f"Invalid SemVer in VersionHistory.md: {version}")
+              return tuple(int(part) for part in parsed.groups())
+
+          current = parse_semver(project_version)
+          previous = parse_semver(previous_version)
+
+          if current <= previous:
+              raise SystemExit(
+                  f"Version must increase. Current {project_version} is not greater than previous {previous_version}."
+              )
+
+          if head_ref.startswith("hotfix/"):
+              if current[0] != previous[0] or current[1] != previous[1]:
+                  raise SystemExit(
+                      "Hotfix merges must not change major/minor version; increment patch only."
+                  )
+              if current[2] <= previous[2]:
+                  raise SystemExit(
+                      "Hotfix merges must increment patch version over previous release."
+                  )
+
+          tag = f"v{project_version}"
+          with output_file.open("a", encoding="utf-8") as f:
+              f.write(f"version={project_version}\n")
+              f.write(f"tag={tag}\n")
+              f.write(f"source_branch={head_ref}\n")
+          PY
+
+  tag-release:
+    needs: validate-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout merge commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Create or validate release tag
+        env:
+          TAG: ${{ needs.validate-release.outputs.tag }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            EXISTING_SHA="$(git rev-list -n 1 "$TAG")"
+            if [[ "$EXISTING_SHA" != "$SHA" ]]; then
+              echo "Tag $TAG already exists at $EXISTING_SHA, expected $SHA."
+              exit 1
+            fi
+            echo "Tag $TAG already exists on expected commit $SHA."
+            exit 0
+          fi
+          git tag -a "$TAG" "$SHA" -m "Release $TAG"
+          git push origin "$TAG"
+
+  build-and-publish:
+    needs:
+      - validate-release
+      - tag-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout tagged release commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate-release.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Python setup
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v7
+
+      - name: Build distributions
+        run: uv build
+
+      - name: Publish distributions
+        run: uv publish --trusted-publishing always dist/*
+
+      - name: Upload distribution artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pertdist-dists
+          path: dist/*
+
+  release-metadata:
+    needs:
+      - validate-release
+      - tag-release
+      - build-and-publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout merge commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: pertdist-dists
+          path: dist
+
+      - name: Build release notes from VersionHistory
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          version = os.environ["VERSION"]
+          changelog = pathlib.Path("VersionHistory.md").read_text(encoding="utf-8")
+          pattern = re.compile(
+              rf"^## v{re.escape(version)} \([^)]+\)\n(.*?)(?=^## v|\Z)",
+              re.MULTILINE | re.DOTALL,
+          )
+          match = pattern.search(changelog)
+          if not match:
+              raise SystemExit(f"Could not find notes for v{version} in VersionHistory.md")
+
+          notes = match.group(1).strip()
+          if not notes:
+              raise SystemExit(f"VersionHistory entry for v{version} contains no notes.")
+
+          pathlib.Path("release_notes.md").write_text(notes + "\n", encoding="utf-8")
+          PY
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate-release.outputs.tag }}
+          name: ${{ needs.validate-release.outputs.tag }}
+          body_path: release_notes.md
+          files: dist/*
+
+  post-release-verification:
+    needs:
+      - validate-release
+      - build-and-publish
+      - release-metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Python setup
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify published package
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install "pertdist==$VERSION"
+          python - <<'PY'
+          import pert
+          print("Imported pert package version:", pert.__version__)
+          PY
+
+      - name: Release recovery guidance
+        if: failure()
+        env:
+          TAG: ${{ needs.validate-release.outputs.tag }}
+        run: |
+          {
+            echo "## Post-release verification failed"
+            echo ""
+            echo "Suggested recovery checklist:"
+            echo "- Verify package availability and metadata on the package index."
+            echo "- If tag/release metadata is incorrect, correct or remove tag: \`git push origin :refs/tags/$TAG\`."
+            echo "- Publish a corrective hotfix release."
+          } >> "$GITHUB_STEP_SUMMARY"

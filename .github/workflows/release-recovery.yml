@@ -1,0 +1,200 @@
+name: Release Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to recover (SemVer, e.g. 0.1.5)"
+        required: true
+        type: string
+      expected_state:
+        description: "Expected PyPI state for this version after manual action"
+        required: true
+        type: choice
+        options:
+          - yanked
+          - unyanked
+      reason:
+        description: "Short reason for yank/unyank and user guidance"
+        required: false
+        type: string
+      create_advisory_issue:
+        description: "Create a GitHub advisory issue for this recovery event"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  recover-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate inputs
+        id: validate
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid SemVer version: $VERSION"
+            exit 1
+          fi
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Read current yank state on PyPI
+        id: inspect
+        env:
+          PROJECT: pertdist
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import html.parser
+          import os
+          import re
+          import sys
+          import urllib.request
+
+          project = os.environ["PROJECT"]
+          version = os.environ["VERSION"]
+          url = f"https://pypi.org/simple/{project}/"
+
+          class SimpleIndexParser(html.parser.HTMLParser):
+              def __init__(self) -> None:
+                  super().__init__()
+                  self.links: list[dict[str, str]] = []
+
+              def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+                  if tag != "a":
+                      return
+                  attr_dict: dict[str, str] = {}
+                  for k, v in attrs:
+                      if v is not None:
+                          attr_dict[k] = v
+                  self.links.append(attr_dict)
+
+          with urllib.request.urlopen(url, timeout=30) as resp:
+              body = resp.read().decode("utf-8", errors="replace")
+
+          parser = SimpleIndexParser()
+          parser.feed(body)
+
+          version_token = re.compile(rf"(?:^|[-_]){re.escape(version)}(?:[-_.]|$)")
+          matches = []
+          for link in parser.links:
+              href = link.get("href", "").lower()
+              if f"{project}-" not in href:
+                  continue
+              if version_token.search(href):
+                  matches.append(link)
+
+          if not matches:
+              raise SystemExit(
+                  f"No release files for {project}=={version} were found on PyPI simple index."
+              )
+
+          yanked_count = 0
+          for link in matches:
+              if "data-yanked" in link:
+                  yanked_count += 1
+
+          is_yanked = yanked_count == len(matches)
+          state = "yanked" if is_yanked else "unyanked"
+
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as f:
+              f.write(f"observed_state={state}\n")
+              f.write(f"files_found={len(matches)}\n")
+              f.write(f"yanked_files={yanked_count}\n")
+          PY
+
+      - name: Yank Runbook
+        env:
+          PROJECT: pertdist
+          VERSION: ${{ github.event.inputs.version }}
+          EXPECTED_STATE: ${{ github.event.inputs.expected_state }}
+          OBSERVED_STATE: ${{ steps.inspect.outputs.observed_state }}
+          FILES_FOUND: ${{ steps.inspect.outputs.files_found }}
+          YANKED_FILES: ${{ steps.inspect.outputs.yanked_files }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Yank Runbook"
+            echo ""
+            echo "- Project: \`$PROJECT\`"
+            echo "- Version: \`$VERSION\`"
+            echo "- Expected state after manual action: \`$EXPECTED_STATE\`"
+            echo "- Current observed state: \`$OBSERVED_STATE\`"
+            echo "- Files evaluated: \`$FILES_FOUND\`"
+            echo "- Yanked files observed: \`$YANKED_FILES\`"
+            echo ""
+            echo "### Operator Steps"
+            echo "1. Open: https://pypi.org/manage/project/$PROJECT/releases/"
+            if [[ "$EXPECTED_STATE" == "yanked" ]]; then
+              echo "2. Locate version \`$VERSION\` and click **Yank**."
+            else
+              echo "2. Locate version \`$VERSION\` and click **Unyank**."
+            fi
+            echo "3. Confirm the state change in PyPI."
+            echo "4. Re-run this workflow with the same inputs."
+            echo ""
+            echo "### Timing"
+            echo "- If observed state already equals expected, no manual PyPI action is required and this run can continue."
+            echo "- If observed state differs, perform the PyPI action now and then re-run the workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce expected yank state
+        env:
+          PROJECT: pertdist
+          VERSION: ${{ github.event.inputs.version }}
+          EXPECTED_STATE: ${{ github.event.inputs.expected_state }}
+          OBSERVED_STATE: ${{ steps.inspect.outputs.observed_state }}
+        run: |
+          set -euo pipefail
+          if [[ "$OBSERVED_STATE" != "$EXPECTED_STATE" ]]; then
+            echo "Expected $EXPECTED_STATE, observed $OBSERVED_STATE for $PROJECT==$VERSION."
+            echo "Follow the Yank Runbook in the job summary, then rerun this workflow."
+            exit 1
+          fi
+          echo "Verified: $PROJECT==$VERSION is $OBSERVED_STATE as expected."
+
+      - name: Create advisory issue
+        if: github.event.inputs.create_advisory_issue == 'true'
+        uses: actions/github-script@v8
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          TAG: ${{ steps.validate.outputs.tag }}
+          EXPECTED_STATE: ${{ github.event.inputs.expected_state }}
+          OBSERVED_STATE: ${{ steps.inspect.outputs.observed_state }}
+          REASON: ${{ github.event.inputs.reason }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const version = process.env.VERSION;
+            const tag = process.env.TAG;
+            const expectedState = process.env.EXPECTED_STATE;
+            const observedState = process.env.OBSERVED_STATE;
+            const reason = (process.env.REASON || "").trim();
+
+            const title = `release-recovery: ${expectedState} v${version}`;
+            const bodyLines = [
+              `Release recovery verification completed for \`${tag}\`.`,
+              "",
+              `- Expected PyPI state: \`${expectedState}\``,
+              `- Observed PyPI state: \`${observedState}\``,
+              `- PyPI management URL: https://pypi.org/manage/project/pertdist/releases/`,
+              "",
+              "Reason / user guidance:",
+              reason ? reason : "_No reason provided._",
+            ];
+
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title,
+              body: bodyLines.join("\n"),
+              labels: ["release"],
+            });
