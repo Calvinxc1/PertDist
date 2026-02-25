@@ -12,7 +12,7 @@ on:
 
 jobs:
   publish-dry-run:
-    if: startsWith(github.head_ref, 'release/')
+    if: startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
