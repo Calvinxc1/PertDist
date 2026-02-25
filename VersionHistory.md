@@ -7,6 +7,9 @@
 * Added release orchestration, version-integrity, and recovery workflows for merged `release/*`/`hotfix/*` PRs to `main`, including post-release package verification and recovery runbook guidance.
 * Extended release PR publish dry-run checks to both `release/*` and `hotfix/*` branches.
 * Switched to developer-local `uv.lock` handling by removing lockfile tracking from CI expectations and updating repository policy accordingly.
+* Added a non-blocking policy-drift warning workflow that flags possible documentation drift when `AGENTS.md` changes and performs lightweight contributor-doc anchor checks.
+* Hardened release recovery issue handling by ensuring the `release` label when possible and falling back to unlabeled advisory issue creation when label setup is unavailable.
+* Expanded project documentation and package metadata: improved README contributor/release process guidance, added `CONTRIBUTING.md`, and enriched `pyproject.toml` metadata for package publishing/discoverability.
 
 ## v0.1.4 (2026-02-19)
 * Expanded automated test coverage across distribution identities, sampling, vectorization, validation edges, median/ci, and repr behavior.
