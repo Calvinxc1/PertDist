@@ -53,6 +53,6 @@ These instructions apply to the entire repo tree.
 - Before any change, state exactly what you will do.
 - For bug/failure remediation (for example CI/workflow errors), first explain the proposed fix and ask for explicit confirmation before making file edits.
 - When changing GitHub Actions/workflow behavior, verify `AGENTS.md` policy text matches the realized workflow triggers and rules; if not aligned, update `AGENTS.md` in the same change.
-- Do NOT make any changes to `uv.lock`, ever, under any circumstances. If you believe a change should be made to `uv.lock`, instruct the user to run `uv sync`.
+- `uv.lock` is intentionally developer-local and not tracked in git for this repository. Do not commit it.
 - After any change, summarize exactly what changed and where.
 - If requested action conflicts with these rules, ask for confirmation and explain the conflict.
