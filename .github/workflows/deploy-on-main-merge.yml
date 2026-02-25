@@ -1,4 +1,4 @@
-name: Deploy On Main Merge
+name: Release On Main Merge
 
 on:
   pull_request:

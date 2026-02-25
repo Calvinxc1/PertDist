@@ -161,6 +161,36 @@ jobs:
           fi
           echo "Verified: $PROJECT==$VERSION is $OBSERVED_STATE as expected."
 
+      - name: Ensure release label exists
+        id: ensure_release_label
+        if: github.event.inputs.create_advisory_issue == 'true'
+        continue-on-error: true
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const labelName = "release";
+            try {
+              await github.rest.issues.getLabel({
+                owner,
+                repo,
+                name: labelName,
+              });
+              core.info(`Label '${labelName}' already exists.`);
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+              await github.rest.issues.createLabel({
+                owner,
+                repo,
+                name: labelName,
+                color: "0E8A16",
+                description: "Release and recovery tracking",
+              });
+              core.info(`Created label '${labelName}'.`);
+            }
+
       - name: Create advisory issue
         if: github.event.inputs.create_advisory_issue == 'true'
         uses: actions/github-script@v8
@@ -170,6 +200,7 @@ jobs:
           EXPECTED_STATE: ${{ github.event.inputs.expected_state }}
           OBSERVED_STATE: ${{ steps.inspect.outputs.observed_state }}
           REASON: ${{ github.event.inputs.reason }}
+          ADD_RELEASE_LABEL: ${{ steps.ensure_release_label.outcome == 'success' }}
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -178,6 +209,7 @@ jobs:
             const expectedState = process.env.EXPECTED_STATE;
             const observedState = process.env.OBSERVED_STATE;
             const reason = (process.env.REASON || "").trim();
+            const addReleaseLabel = process.env.ADD_RELEASE_LABEL === "true";
 
             const title = `release-recovery: ${expectedState} v${version}`;
             const bodyLines = [
@@ -191,10 +223,17 @@ jobs:
               reason ? reason : "_No reason provided._",
             ];
 
-            await github.rest.issues.create({
+            const payload = {
               owner,
               repo,
               title,
               body: bodyLines.join("\n"),
-              labels: ["release"],
-            });
+            };
+
+            if (addReleaseLabel) {
+              payload.labels = ["release"];
+            } else {
+              core.warning("Release label unavailable; creating advisory issue without labels.");
+            }
+
+            await github.rest.issues.create(payload);
