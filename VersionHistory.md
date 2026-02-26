@@ -10,6 +10,10 @@
 * Added a non-blocking policy-drift warning workflow that flags possible documentation drift when `AGENTS.md` changes and performs lightweight contributor-doc anchor checks.
 * Hardened release recovery issue handling by ensuring the `release` label when possible and falling back to unlabeled advisory issue creation when label setup is unavailable.
 * Expanded project documentation and package metadata: improved README contributor/release process guidance, added `CONTRIBUTING.md`, and enriched `pyproject.toml` metadata for package publishing/discoverability.
+* Hardened post-release package verification by adding bounded retry/backoff when installing `pertdist==$VERSION` in `.github/workflows/deploy-on-main-merge.yml`, reducing false failures caused by package-index propagation delays.
+* Fixed `PERT` finite-input validation to correctly reject non-finite values while remaining safe for vectorized NumPy inputs.
+* Added regression coverage for non-finite constructor inputs in `tests/test_validation_edges.py`.
+* Removed unused runtime dependency `pydantic` from `pyproject.toml`.
 
 ## v0.1.4 (2026-02-19)
 * Expanded automated test coverage across distribution identities, sampling, vectorization, validation edges, median/ci, and repr behavior.
