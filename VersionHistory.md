@@ -1,6 +1,6 @@
 # Version History
 
-## v0.1.5 (2026-02-23)
+## v0.1.5 (2026-02-26)
 * Removed push-based execution from `.github/workflows/ci.yml`; CI now runs on pull requests to `dev`/`main` only.
 * Fixed release publish dry-run behavior by removing offline publishing and requiring trusted publishing (`id-token: write` and `uv publish --trusted-publishing always --dry-run ...`).
 * Updated `AGENTS.md` guardrails to require draft PRs by default, require explicit confirmation before CI/workflow failure-remediation edits, and keep workflow trigger policy text aligned with implemented Actions behavior.
