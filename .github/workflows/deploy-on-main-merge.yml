@@ -268,7 +268,23 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install "pertdist==$VERSION"
+          ATTEMPTS=6
+          DELAY_SECONDS=20
+
+          for attempt in $(seq 1 "$ATTEMPTS"); do
+            if python -m pip install "pertdist==$VERSION"; then
+              break
+            fi
+
+            if [[ "$attempt" -eq "$ATTEMPTS" ]]; then
+              echo "Failed to install pertdist==$VERSION after $ATTEMPTS attempts."
+              exit 1
+            fi
+
+            echo "Install attempt $attempt/$ATTEMPTS failed; retrying in ${DELAY_SECONDS}s..."
+            sleep "$DELAY_SECONDS"
+          done
+
           python - <<'PY'
           import pert
           print("Imported pert package version:", pert.__version__)
