@@ -1,0 +1,98 @@
+name: Version Integrity (Main PR)
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+jobs:
+  version-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Validate branch/version integrity
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import datetime as dt
+          import os
+          import pathlib
+          import re
+          import tomllib
+          
+          head_ref = os.environ["HEAD_REF"]
+          base_ref = os.environ["BASE_REF"]
+
+          if base_ref != "main":
+              raise SystemExit(f"This workflow only supports PRs to main, got base={base_ref!r}")
+
+          branch_match = re.fullmatch(r"(release|hotfix)/(\d+\.\d+\.\d+)", head_ref)
+          if not branch_match:
+              raise SystemExit(
+                  "PRs to main must come from release/* or hotfix/* with SemVer suffix "
+                  "(e.g. release/1.2.3 or hotfix/1.2.3)."
+              )
+
+          branch_type = branch_match.group(1)
+          branch_version = branch_match.group(2)
+
+          pyproject = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
+          project_version = pyproject["project"]["version"]
+
+          init_text = pathlib.Path("src/pert/__init__.py").read_text(encoding="utf-8")
+          init_match = re.search(r'^__version__\s*=\s*"([^"]+)"', init_text, re.MULTILINE)
+          if not init_match:
+              raise SystemExit("Unable to locate __version__ in src/pert/__init__.py")
+          init_version = init_match.group(1)
+
+          history_text = pathlib.Path("VersionHistory.md").read_text(encoding="utf-8")
+          top_entry_match = re.search(
+              r"^## v(?P<version>\d+\.\d+\.\d+) \((?P<date>\d{4}-\d{2}-\d{2})\)",
+              history_text,
+              re.MULTILINE,
+          )
+          if not top_entry_match:
+              raise SystemExit(
+                  "VersionHistory.md must contain a heading like '## vX.Y.Z (YYYY-MM-DD)'."
+              )
+
+          history_version = top_entry_match.group("version")
+          history_date = top_entry_match.group("date")
+
+          try:
+              dt.date.fromisoformat(history_date)
+          except ValueError as exc:
+              raise SystemExit(
+                  f"Top VersionHistory.md entry has invalid date {history_date!r}; "
+                  "expected a real YYYY-MM-DD date."
+              ) from exc
+
+          checks = {
+              "branch": branch_version,
+              "pyproject.toml": project_version,
+              "src/pert/__init__.py": init_version,
+              "VersionHistory.md top entry": history_version,
+          }
+          unique_versions = sorted(set(checks.values()))
+          if len(unique_versions) != 1:
+              details = "\n".join(f"- {k}: {v}" for k, v in checks.items())
+              raise SystemExit(
+                  "Version integrity check failed. All version sources must match exactly:\n" + details
+              )
+
+          print("Version integrity check passed.")
+          print(f"- Branch type: {branch_type}")
+          print(f"- Version: {unique_versions[0]}")
+          print(f"- VersionHistory date: {history_date}")
+          PY

@@ -1,12 +1,11 @@
 # PertDist
+[![CI (main)](https://github.com/Calvinxc1/PertDist/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Calvinxc1/PertDist/actions/workflows/ci.yml?query=branch%3Amain)
+[![PyPI version](https://img.shields.io/pypi/v/pertdist.svg)](https://pypi.org/project/pertdist/)
+
 `PertDist` is a SciPy-style implementation of the [Beta-PERT distribution](https://en.wikipedia.org/wiki/PERT_distribution).
 
 ## Overview
 The package exposes a `PERT` class with an API modeled after `scipy.stats` distributions. It supports scalar and array-based parameters and computes both distribution functions and descriptive statistics.
-
-## Authorship And AI Usage
-- Functional library code is authored manually.
-- AI tooling may be used to assist with unit test authoring and documentation drafting/editing.
 
 ## Installation
 ```bash
@@ -15,6 +14,10 @@ pip install pertdist
 
 ## Python Version
 - `Python >= 3.11`
+
+## Support
+- Supported Python: `3.11+`
+- Primary package index: [PyPI (`pertdist`)](https://pypi.org/project/pertdist/)
 
 ## Quick Start
 ```python
@@ -56,7 +59,7 @@ The constructor enforces:
 - no adjacent equal values (`min_val == ml_val` or `ml_val == max_val`)
 
 ## Testing
-The project includes a pytest suite under `tests/`, including coverage for:
+The project includes a pytest suite under [`tests/`](tests/), including coverage for:
 - initialization and validation
 - distribution identities and boundary behavior
 - sampling behavior and reproducibility
@@ -65,6 +68,18 @@ The project includes a pytest suite under `tests/`, including coverage for:
 
 Run tests with:
 ```bash
+uv run pytest -q
+```
+
+## Development Setup
+Install development dependencies:
+```bash
+uv sync --all-extras --dev
+```
+
+Run lint and tests:
+```bash
+uv run ruff check .
 uv run pytest -q
 ```
 
@@ -77,10 +92,33 @@ uv run pytest -q
   - `std`
 
 ## Version History
-See `VersionHistory.md`.
+See [`VersionHistory.md`](VersionHistory.md).
 
 ## Contributing
-Pull requests are welcome. Branching and contribution style can follow repository conventions.
+- Community and core-developer contribution workflow is documented in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- Repository guardrails and policy details are defined in [`AGENTS.md`](AGENTS.md).
+
+## Release Process (High-Level)
+- Pull requests from `release/*` and `hotfix/*` into `main` run publish dry-run checks.
+- Merged `release/*` / `hotfix/*` PRs to `main` trigger publish, tagging, release metadata, and post-release verification workflows.
+- Recovery actions (including yank/unyank verification with runbook guidance) are run manually when needed.
+
+## Reporting Issues
+- Bug reports and feature requests: [GitHub Issues](https://github.com/Calvinxc1/PertDist/issues)
+- Security-sensitive concerns can be reported privately using GitHub repository security reporting.
+
+## Repository Policy
+High-level development policy summary (full details in [`AGENTS.md`](AGENTS.md)):
+- GitFlow is used: `feature/* -> dev`, `release/*|hotfix/* -> main`, with PR-based merges.
+- Community contributions are welcome through `feature/* -> dev` pull requests; `release/*` and `hotfix/*` flows are core-developer managed.
+- CI runs on PRs to `dev` and `main`; release dry-runs run on `release/*`/`hotfix/*` PRs to `main`; release publish runs after merge to `main`.
+- Semantic Versioning is required (`MAJOR.MINOR.PATCH`) and versioning must be intentional.
+- Some defaults are guidance (for example draft PR by default) and developer discretion is explicitly supported.
+- `uv.lock` is developer-local and is not tracked in this repository.
+- Functional library code is authored manually.
+- AI tooling may assist with test authoring, documentation drafting/editing, GitHub Actions/workflow authoring and maintenance, and development guidance for planning/decision support.
+
+For release notes and historical change context, see [`VersionHistory.md`](VersionHistory.md).
 
 ## License
-This project is licensed under the GNU GPL. See `LICENSE`.
+This project is licensed under the GNU GPL. See [`LICENSE`](LICENSE).

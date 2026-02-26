@@ -1,3 +1,5 @@
 from .PERT import PERT
 
-__version__ = "0.1.4"
+__all__ = ["PERT"]
+
+__version__ = "0.1.5"
