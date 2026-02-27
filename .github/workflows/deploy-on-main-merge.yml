@@ -305,3 +305,88 @@ jobs:
             echo "- If tag/release metadata is incorrect, correct or remove tag: \`git push origin :refs/tags/$TAG\`."
             echo "- Publish a corrective hotfix release."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  sync-main-into-dev:
+    needs:
+      - post-release-verification
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Create or update main->dev sync PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const marker = "<!-- auto-main-to-dev-sync -->";
+            const title = "chore: sync main into dev after release merge";
+            const body = [
+              marker,
+              "Automated sync PR from `main` to `dev` after successful release workflow completion.",
+              "",
+              "This PR was created by workflow `deploy-on-main-merge.yml`.",
+            ].join("\n");
+
+            const existing = await github.paginate(
+              github.rest.pulls.list,
+              {
+                owner,
+                repo,
+                state: "open",
+                head: `${owner}:main`,
+                base: "dev",
+                per_page: 100,
+              },
+            );
+
+            let pr;
+            if (existing.length > 0) {
+              pr = existing[0];
+              core.info(`Found existing sync PR: ${pr.html_url}`);
+            } else {
+              try {
+                const created = await github.rest.pulls.create({
+                  owner,
+                  repo,
+                  title,
+                  head: "main",
+                  base: "dev",
+                  body,
+                  draft: false,
+                });
+                pr = created.data;
+                core.info(`Created sync PR: ${pr.html_url}`);
+              } catch (error) {
+                const message = String(error?.message || error);
+                if (message.includes("No commits between")) {
+                  core.info("No sync PR needed: main and dev are already aligned.");
+                  return;
+                }
+                throw error;
+              }
+            }
+
+            try {
+              await github.graphql(
+                `mutation($pullRequestId: ID!) {
+                  enablePullRequestAutoMerge(input: {
+                    pullRequestId: $pullRequestId,
+                    mergeMethod: MERGE
+                  }) {
+                    pullRequest {
+                      number
+                      autoMergeRequest {
+                        enabledAt
+                      }
+                    }
+                  }
+                }`,
+                { pullRequestId: pr.node_id },
+              );
+              core.info(`Enabled auto-merge for PR #${pr.number}.`);
+            } catch (error) {
+              core.warning(
+                `Unable to enable auto-merge for PR #${pr.number}: ${String(error?.message || error)}`,
+              );
+            }
