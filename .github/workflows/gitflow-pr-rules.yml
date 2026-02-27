@@ -22,7 +22,7 @@ jobs:
           allowed=false
 
           if [[ "$BASE_REF" == "dev" ]]; then
-            if [[ "$HEAD_REF" == feature/* ]]; then
+            if [[ "$HEAD_REF" == feature/* || "$HEAD_REF" == "main" ]]; then
               allowed=true
             fi
           elif [[ "$BASE_REF" == "main" ]]; then
@@ -35,6 +35,7 @@ jobs:
             echo "Invalid GitFlow PR path: '$HEAD_REF' -> '$BASE_REF'"
             echo "Allowed paths:"
             echo "  feature/* -> dev"
+            echo "  main -> dev"
             echo "  release/* -> main"
             echo "  hotfix/* -> main"
             exit 1
