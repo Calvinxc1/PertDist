@@ -35,6 +35,13 @@ class PERT:
         self.c = np.asarray(max_val)
         self.lamb = lamb
 
+        if not (
+            np.isfinite(self.a).all()
+            and np.isfinite(self.b).all()
+            and np.isfinite(self.c).all()
+            and np.isfinite(self.lamb)
+        ):
+            raise ValueError("Non-finite values present in inputs.")
         if np.any(lamb <= 0):
             raise ValueError("lamb parameter should be greater than 0.")
         if np.any(self.b < self.a):

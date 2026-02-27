@@ -2,6 +2,7 @@ name: Release PR Publish Dry Run
 
 permissions:
   contents: read
+  id-token: write
 
 on:
   pull_request:
@@ -11,7 +12,7 @@ on:
 
 jobs:
   publish-dry-run:
-    if: startsWith(github.head_ref, 'release/')
+    if: startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,7 +30,7 @@ jobs:
         run: uv build
 
       - name: Publish dry run
-        run: uv publish --dry-run --offline dist/*
+        run: uv publish --dry-run --trusted-publishing always dist/*
 
       - name: Upload build artifacts
         if: always()

@@ -1,0 +1,182 @@
+name: Policy Drift Warning
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+    branches:
+      - dev
+      - main
+      - "release/**"
+      - "hotfix/**"
+    paths:
+      - "AGENTS.md"
+      - "README.md"
+      - "CONTRIBUTING.md"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  warn-on-possible-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Detect possible policy drift
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.pull_request.number;
+            const marker = "<!-- policy-drift-warning -->";
+
+            const changedFiles = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner,
+                repo,
+                pull_number: issue_number,
+                per_page: 100,
+              },
+            );
+
+            const changed = new Set(changedFiles.map((f) => f.filename));
+            const agentsChanged = changed.has("AGENTS.md");
+            const readmeChanged = changed.has("README.md");
+            const contributingChanged = changed.has("CONTRIBUTING.md");
+
+            // File-level warning: AGENTS.md changed but contributor-facing docs did not.
+            const missingDocSyncWarning = agentsChanged && !readmeChanged && !contributingChanged;
+
+            // Lightweight heuristic checks (non-blocking): look for key policy anchor phrases.
+            function readFileIfExists(path) {
+              try {
+                return fs.readFileSync(path, "utf8");
+              } catch (err) {
+                return "";
+              }
+            }
+
+            const readmeText = readFileIfExists("README.md");
+            const contributingText = readFileIfExists("CONTRIBUTING.md");
+
+            const heuristicChecks = [
+              {
+                file: "README.md",
+                name: "references AGENTS.md",
+                ok: /AGENTS\.md/i.test(readmeText),
+              },
+              {
+                file: "README.md",
+                name: "mentions feature/* -> dev flow",
+                ok: /feature\/\*\s*->\s*dev/i.test(readmeText),
+              },
+              {
+                file: "README.md",
+                name: "mentions release/hotfix scope",
+                ok: /release\/\*/i.test(readmeText) && /hotfix\/\*/i.test(readmeText),
+              },
+              {
+                file: "CONTRIBUTING.md",
+                name: "references AGENTS.md",
+                ok: /AGENTS\.md/i.test(contributingText),
+              },
+              {
+                file: "CONTRIBUTING.md",
+                name: "states core-developer release/hotfix scope",
+                ok: /core-developer/i.test(contributingText) || /core developer/i.test(contributingText),
+              },
+              {
+                file: "CONTRIBUTING.md",
+                name: "mentions SemVer",
+                ok: /Semantic Versioning|SemVer/i.test(contributingText),
+              },
+            ];
+
+            const failedHeuristics = heuristicChecks.filter((c) => !c.ok);
+            const heuristicWarning = agentsChanged && failedHeuristics.length > 0;
+            const needsWarning = missingDocSyncWarning || heuristicWarning;
+
+            core.summary
+              .addHeading("Policy drift check")
+              .addRaw(`- AGENTS.md changed: ${agentsChanged}\n`)
+              .addRaw(`- README.md changed: ${readmeChanged}\n`)
+              .addRaw(`- CONTRIBUTING.md changed: ${contributingChanged}\n`)
+              .addRaw(`- File-sync warning: ${missingDocSyncWarning}\n`)
+              .addRaw(`- Heuristic warning: ${heuristicWarning}\n`)
+              .addRaw(`- Warning needed: ${needsWarning}\n`);
+
+            if (failedHeuristics.length > 0) {
+              core.summary.addRaw("\nPotentially missing policy anchors:\n");
+              for (const check of failedHeuristics) {
+                core.summary.addRaw(`- ${check.file}: ${check.name}\n`);
+              }
+            }
+            await core.summary.write();
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                owner,
+                repo,
+                issue_number,
+                per_page: 100,
+              },
+            );
+
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+
+            if (!needsWarning) {
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existing.id,
+                  body: `${marker}\nPolicy drift warning resolved for current changes.`,
+                });
+              }
+              core.notice("No policy drift warning needed.");
+              return;
+            }
+
+            const body = [
+              marker,
+              "Possible policy drift between `AGENTS.md` and contributor docs (`README.md`/`CONTRIBUTING.md`).",
+              "",
+              missingDocSyncWarning
+                ? "- `AGENTS.md` changed without corresponding `README.md` or `CONTRIBUTING.md` edits."
+                : "- Documentation changed, but lightweight policy-anchor checks detected possible mismatch.",
+              ...(failedHeuristics.length > 0
+                ? [
+                    "",
+                    "Potentially missing anchors:",
+                    ...failedHeuristics.map((c) => `- ${c.file}: ${c.name}`),
+                  ]
+                : []),
+              "",
+              "Manual review recommended. This is a non-blocking warning.",
+            ].join("\n");
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
+
+            core.notice("Posted non-blocking policy drift warning.");

@@ -1,13 +1,43 @@
 [project]
 name = "pertdist"
-version = "0.1.4"
-description = "Add your description here"
+version = "0.1.5"
+description = "SciPy-style Beta-PERT distribution for estimation and risk modeling."
+readme = "README.md"
+license = { text = "GPL-3.0-only" }
 requires-python = ">=3.11"
+authors = [
+    { name = "Jason M. Cherry", email = "jcherry@gmail.com" },
+]
+keywords = [
+    "pert",
+    "beta-pert",
+    "distribution",
+    "risk-analysis",
+    "estimation",
+    "simulation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
 dependencies = [
     "numpy>=2.4.0",
-    "pydantic>=2.12.5",
     "scipy>=1.16.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Calvinxc1/PertDist"
+Repository = "https://github.com/Calvinxc1/PertDist"
+Issues = "https://github.com/Calvinxc1/PertDist/issues"
+Changelog = "https://github.com/Calvinxc1/PertDist/blob/main/VersionHistory.md"
 
 [dependency-groups]
 dev = [
