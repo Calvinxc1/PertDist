@@ -11,9 +11,11 @@ These instructions apply to the entire repo tree.
   - `feature/*`: branch from `dev`, merge back into `dev`.
   - `release/*`: branch from `dev`, merge into `main` only.
   - `hotfix/*`: branch from `main`, merge into `main` only.
+  - `main -> dev`: permitted for post-release synchronization via pull request.
 - Contribution scope:
   - Community contributors are welcome to propose changes through `feature/* -> dev` pull requests.
   - `release/*` and `hotfix/*` branches and pull requests are core-developer managed.
+  - `main -> dev` synchronization pull requests are core-developer managed.
 - Never commit directly to `main` or `dev`.
 - Use pull requests for all merges.
 - Create pull requests as draft PRs by default; this is a recommended default, not a mandatory enforcement. Developers may open regular/open PRs when they judge it appropriate.
@@ -66,8 +68,13 @@ These instructions apply to the entire repo tree.
 - Treat declarative requirement statements (for example: "it should...", "the action should...", "this needs to...") as non-executable unless accompanied by a separate explicit execution cue.
 - Require a separate explicit execution cue (for example: "implement this", "go ahead and make this change") before making changes after proposal/question discussion.
 - For question-form prompts, do not execute edits or commands even if a task is described; require a follow-up explicit execution cue in a separate interaction.
-- Before executing any change after proposal/question discussion, send a preflight confirmation message: "Execution confirmation required. No changes made yet."
-- After an explicit execution cue is received, execute without requesting another confirmation unless requirements changed materially or became ambiguous.
+- Before executing any change after proposal/question discussion, send one preflight confirmation message: "Execution confirmation required. No changes made yet."
+- After an explicit execution cue is received, execute without requesting another confirmation.
+- Do not repeat preflight confirmation for subsequent actions within the same confirmed scope.
+- Request confirmation again only if requirements changed materially, scope expanded beyond what was confirmed, or instructions became ambiguous.
+- If the request names a specific operation, execute only that operation and nothing else unless the user explicitly authorizes additional operations.
+- Do not chain inferred follow-up steps beyond the explicitly requested operation(s).
+- After completing the explicitly requested operation(s), stop and return control to the user; wait for the next instruction before taking further actions.
 - If a user message mixes question framing with an implied task, treat it as non-executable until explicit confirmation is received.
 - If intent is ambiguous, ask a short confirmation question before making changes.
 - If a request is ambiguous, ask a clarifying question before taking any action.

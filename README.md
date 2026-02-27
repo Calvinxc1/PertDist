@@ -98,6 +98,11 @@ See [`VersionHistory.md`](VersionHistory.md).
 - Community and core-developer contribution workflow is documented in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - Repository guardrails and policy details are defined in [`AGENTS.md`](AGENTS.md).
 
+## AI Usage
+In this repository, AI tooling is used to assist with non-functional development work, including test authoring, documentation drafting/editing, GitHub Actions/workflow authoring and maintenance, and planning/decision support.
+
+Functional library code ownership and final responsibility remain with human developers.
+
 ## Release Process (High-Level)
 - Pull requests from `release/*` and `hotfix/*` into `main` run publish dry-run checks.
 - Merged `release/*` / `hotfix/*` PRs to `main` trigger publish, tagging, release metadata, and post-release verification workflows.
@@ -109,8 +114,8 @@ See [`VersionHistory.md`](VersionHistory.md).
 
 ## Repository Policy
 High-level development policy summary (full details in [`AGENTS.md`](AGENTS.md)):
-- GitFlow is used: `feature/* -> dev`, `release/*|hotfix/* -> main`, with PR-based merges.
-- Community contributions are welcome through `feature/* -> dev` pull requests; `release/*` and `hotfix/*` flows are core-developer managed.
+- GitFlow is used: `feature/* -> dev`, `release/*|hotfix/* -> main`, and `main -> dev` sync PRs, with PR-based merges.
+- Community contributions are welcome through `feature/* -> dev` pull requests; `release/*`, `hotfix/*`, and `main -> dev` sync flows are core-developer managed.
 - CI runs on PRs to `dev` and `main`; release dry-runs run on `release/*`/`hotfix/*` PRs to `main`; release publish runs after merge to `main`.
 - Semantic Versioning is required (`MAJOR.MINOR.PATCH`) and versioning must be intentional.
 - Some defaults are guidance (for example draft PR by default) and developer discretion is explicitly supported.

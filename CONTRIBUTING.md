@@ -5,6 +5,7 @@ This project uses GitFlow and PR-based development. See [`AGENTS.md`](AGENTS.md)
 ## Contribution Scope
 - Community contributors are welcome to propose changes through `feature/* -> dev` pull requests.
 - `release/* -> main` and `hotfix/* -> main` branches/pull requests are core-developer managed.
+- `main -> dev` synchronization pull requests are core-developer managed.
 
 ## Development Setup
 Install development dependencies:
@@ -26,6 +27,8 @@ uv run pytest -q
 - Releases and hotfixes are managed by core developers:
   - `release/<semver> -> main`
   - `hotfix/<semver> -> main`
+- Post-release synchronization is core-managed:
+  - `main -> dev`
 
 ## Versioning and Release Notes
 - Follow Semantic Versioning (`MAJOR.MINOR.PATCH`).
